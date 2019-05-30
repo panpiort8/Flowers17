@@ -1,13 +1,14 @@
-from architectures import *
+import architectures as arch
 from keras.utils import plot_model
+import argparse
+import sys
+import os
+from utils import *
 
-# algo_base = api.Algorithm
-# all_algos = [ (name, cls) for name, cls in algorithms.__dict__.items() if
-#         isinstance(cls, type) and
-#         issubclass(cls, algo_base) and
-#         cls != algo_base
-#     ]
+parser = argparse.ArgumentParser(description='Visualize network')
+args, net_cls = arch_semi_parse(parser)
 
-model = MiniVGGNet.build(64, 64, 1, 17)
-plot_model(model, show_shapes=True)
+model = net_cls.build(64, 64, 3, 17)
+name = os.path.join("images/architectures", net_cls.__name__)
+plot_model(model, to_file=name, show_shapes=True)
 
