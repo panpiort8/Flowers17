@@ -9,8 +9,7 @@ from keras.layers.core import Dense
 from keras import backend as K
 from architectures import Architecture
 
-class MiniVGGNet(Architecture):
-    @staticmethod
+class FatNet(Architecture):
     def build(width, height, depth, classes):
         model = Sequential()
         input_shape = (height, width, depth)
@@ -20,15 +19,9 @@ class MiniVGGNet(Architecture):
             input_shape = (depth, height, width)
             channel_dim = 1
 
-        model.add(Conv2D(32, (3, 3), padding='same', input_shape=input_shape))
+        model.add(Conv2D(64, (3, 3), padding='same', input_shape=input_shape))
         model.add(Activation('relu'))
         model.add(BatchNormalization(axis=channel_dim))
-        model.add(Conv2D(32, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization(axis=channel_dim))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-
         model.add(Conv2D(64, (3, 3), padding='same'))
         model.add(Activation('relu'))
         model.add(BatchNormalization(axis=channel_dim))
@@ -36,12 +29,15 @@ class MiniVGGNet(Architecture):
         model.add(Activation('relu'))
         model.add(BatchNormalization(axis=channel_dim))
         model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
+        model.add(Dropout(0.5))
 
         model.add(Flatten())
-        model.add(Dense(512))
+        model.add(Dense(1024))
         model.add(Activation('relu'))
-        model.add(BatchNormalization())
+        model.add(BatchNormalization(axis=channel_dim))
+        model.add(Dropout(0.5))
+        model.add(Dense(256))
+        model.add(Activation('relu'))
         model.add(Dropout(0.5))
 
         model.add(Dense(classes))
