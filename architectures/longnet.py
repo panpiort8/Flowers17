@@ -43,6 +43,7 @@ class LongNet(Architecture):
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
 
+        # 9
         model.add(Flatten())
         model.add(Dense(512))
         model.add(Activation('relu'))

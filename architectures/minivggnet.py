@@ -38,10 +38,11 @@ class MiniVGGNet(Architecture):
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
 
+        # 7
         model.add(Flatten())
         model.add(Dense(512))
         model.add(Activation('relu'))
-        model.add(BatchNormalization())
+        model.add(BatchNormalization(axis=channel_dim))
         model.add(Dropout(0.5))
 
         model.add(Dense(classes))

@@ -31,6 +31,7 @@ class FatNet(Architecture):
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.5))
 
+        # 10
         model.add(Flatten())
         model.add(Dense(1024))
         model.add(Activation('relu'))

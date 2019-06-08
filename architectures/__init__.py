@@ -5,3 +5,4 @@ from .widenet import WideNet
 from .longnet import LongNet
 from .cascadenet import CascadeNet
 from .fatnet import FatNet
+from .singletopnet import SingleTopNet
