@@ -23,11 +23,12 @@ from keras.optimizers import Adam
 from keras.models import load_model
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import ModelCheckpoint
-import numpy as np
 from utils.figure_plot import get_figure
+from datasets.load_images import load_images
 
+fchead=[256]
 
-file_base = "{}_{}_{}_{}".format(net_cls.__name__, args['epochs'], args['optimizer'], args['lrt'])
+file_base = "{}_{}_{}_{}_{}".format(net_cls.__name__, fchead, args['epochs'], args['optimizer'], args['lrt'])
 if args['suffix'] is not None:
     file_base += args['suffix']
 fig_name = os.path.join("tmp", file_base + '.png')
@@ -38,15 +39,10 @@ model_name = os.path.join("tmp", file_base + '.hdf5')
 
 
 print("[INFO] loading images...")
-imagePaths = []
-for (dirpath, dirnames, filenames) in os.walk(args['dataset']):
-    for file in filenames:
-        imagePaths.append(os.path.join(dirpath, file))
-classNames = [pt.split(os.path.sep)[-2] for pt in imagePaths]
-classNames = [str(x) for x in np.unique(classNames)]
+image_paths, class_names = load_images(args['dataset'])
 
 sdl = DatasetLoader()
-(data, labels) = sdl.load(imagePaths, verbose=500)
+(data, labels) = sdl.load(image_paths, verbose=500)
 data = data.astype("float") / 255.0
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, random_state=42)
 trainY = LabelBinarizer().fit_transform(trainY)
@@ -68,7 +64,7 @@ else: opt = RMSprop(lr=args['lrt'])
 
 
 print("[INFO] preparing network...")
-model = net_cls.build(width=64, height=64, depth=3, classes=len(classNames))
+model = net_cls.build(width=64, height=64, depth=3, classes=len(class_names), fchead=fchead)
 model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
 
@@ -85,7 +81,7 @@ H = model.fit_generator(aug.flow(trainX, trainY, batch_size=64), callbacks=[msv]
 
 print("[INFO] evaluating network...")
 predictions = model.predict(testX, batch_size=32)
-report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
+report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=class_names))
 print(report)
 with open(report_name, "w") as text_file:
     text_file.write(report)
@@ -99,7 +95,7 @@ model = load_model(model_name)
 
 print("[INFO] evaluating best network...")
 predictions = model.predict(testX, batch_size=32)
-report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
+report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=class_names))
 print(report)
 with open(report_best_name, "w") as text_file:
     text_file.write(report)

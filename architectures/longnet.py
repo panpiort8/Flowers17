@@ -10,49 +10,30 @@ from keras import backend as K
 from architectures import Architecture
 
 class LongNet(Architecture):
-    def build(width, height, depth, classes):
+    @staticmethod
+    def build(width, height, depth, classes, fchead):
+        input_shape, channel_dim = Architecture.get_channel_dim(width, height, depth)
+
         model = Sequential()
-        input_shape = (height, width, depth)
-        channel_dim = -1
 
-        if K.image_data_format() == 'channels_first':
-            input_shape = (depth, height, width)
-            channel_dim = 1
-
-        model.add(Conv2D(32, (5, 5), padding='same', input_shape=input_shape))
-        model.add(Activation('relu'))
+        model.add(Conv2D(32, (5, 5), padding='same', input_shape=input_shape, activation='relu'))
         model.add(BatchNormalization(axis=channel_dim))
-        model.add(Conv2D(32, (5, 5), padding='same'))
-        model.add(Activation('relu'))
+        model.add(Conv2D(32, (5, 5), padding='same', activation='relu'))
         model.add(BatchNormalization(axis=channel_dim))
-        model.add(Conv2D(32, (5, 5), padding='same'))
-        model.add(Activation('relu'))
+        model.add(Conv2D(32, (5, 5), padding='same', activation='relu'))
         model.add(BatchNormalization(axis=channel_dim))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
 
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation('relu'))
+        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
         model.add(BatchNormalization(axis=channel_dim))
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation('relu'))
+        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
         model.add(BatchNormalization(axis=channel_dim))
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation('relu'))
+        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
         model.add(BatchNormalization(axis=channel_dim))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
 
-        # 9
-        model.add(Flatten())
-        model.add(Dense(512))
-        model.add(Activation('relu'))
-        model.add(Dropout(0.5))
-        model.add(Dense(256))
-        model.add(Activation('relu'))
-        model.add(Dropout(0.5))
-
-        model.add(Dense(classes))
-        model.add(Activation('softmax'))
+        Architecture.add_fchead(model=model, fchead=fchead, channel_dim=channel_dim, classes=classes)
 
         return model

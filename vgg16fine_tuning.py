@@ -1,7 +1,6 @@
 import argparse
 import os
-
-from keras.layers import Flatten, Dense, Dropout
+from datasets.load_images import load_images
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-d", "--dataset", required=True, help="path to input dataset")
@@ -24,41 +23,22 @@ from keras.optimizers import SGD
 from keras.optimizers import RMSprop
 from keras.optimizers import Adam
 from keras.models import save_model
-from keras.models import load_model
 from keras.preprocessing.image import ImageDataGenerator
 from keras import Input, Model
 from keras.applications import VGG16
-from keras.callbacks import ModelCheckpoint
-import matplotlib.pyplot as plt
-import numpy as np
-from architectures import *
-
-def get_figure(H, epochs, title):
-    plt.style.use("ggplot")
-    plt.figure()
-    plt.plot(np.arange(0, epochs), H.history["loss"], label="train_loss")
-    plt.plot(np.arange(0, epochs), H.history["val_loss"], label="val_loss")
-    plt.plot(np.arange(0, epochs), H.history["acc"], label="train_acc")
-    plt.plot(np.arange(0, epochs), H.history["val_acc"], label="val_acc")
-    plt.title(title)
-    plt.xlabel("Epoch #")
-    plt.ylabel("Loss/Accuracy")
-    plt.legend()
-    return plt
+from keras.layers import Flatten, Dense, Dropout
+from utils.figure_plot import get_figure
 
 class FCHeadNet:
     @staticmethod
     def build(baseModel, classes, D):
-        # initialize the head model that will be placed on top of
-        # the base, then add a FC layer
         headModel = baseModel.output
         headModel = Flatten(name="flatten")(headModel)
         headModel = Dense(D, activation="relu")(headModel)
         headModel = Dropout(0.5)(headModel)
-
         headModel = Dense(classes, activation="softmax")(headModel)
-
         return headModel
+
 
 fc_layers = [256]
 
@@ -74,26 +54,19 @@ model_name = os.path.join("tmp", file_base + '.hdf5')
 
 
 print("[INFO] loading images...")
-imagePaths = []
-for (dirpath, dirnames, filenames) in os.walk(args['dataset']):
-    for file in filenames:
-        imagePaths.append(os.path.join(dirpath, file))
-classNames = [pt.split(os.path.sep)[-2] for pt in imagePaths]
-classNames = [str(x) for x in np.unique(classNames)]
+image_paths, class_names = load_images(args['dataset'])
 
 sdl = DatasetLoader()
-(data, labels) = sdl.load(imagePaths, verbose=500)
+(data, labels) = sdl.load(image_paths, verbose=500)
 data = data.astype("float") / 255.0
-
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, random_state=42)
-
 trainY = LabelBinarizer().fit_transform(trainY)
 testY = LabelBinarizer().fit_transform(testY)
 
 
 print("[INFO] loading model...")
 base_model = VGG16(weights="imagenet", include_top=False,
-                  input_tensor=Input(shape=(64, 64, 3)))
+                  input_tensor=Input(shape=(128, 128, 3)))
 
 
 print("[INFO] surgering model...")
@@ -124,14 +97,14 @@ H = model.fit_generator(aug.flow(trainX, trainY, batch_size=64),
 
 print("[INFO] evaluating network...")
 predictions = model.predict(testX, batch_size=32)
-report = str(classification_report(testY.argmax(axis=1),predictions.argmax(axis=1), target_names=classNames))
+report = str(classification_report(testY.argmax(axis=1),predictions.argmax(axis=1), target_names=class_names))
 print(report)
 with open(report_name_1, "w") as text_file:
     text_file.write(report)
 get_figure(H, args['epochs_1'], 'first phase').savefig(fig_name_1)
 
 print("[INFO] unfreezing layers...")
-for layer in base_model.layers[15:]:
+for layer in base_model.layers:
     layer.trainable = True
 
 opt_name = args['optimizer_2'].lower()
@@ -150,7 +123,7 @@ H = model.fit_generator(aug.flow(trainX, trainY, batch_size=64),
 
 print("[INFO] evaluating fine-tuned network...")
 predictions = model.predict(testX, batch_size=32)
-report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
+report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=class_names))
 print(report)
 with open(report_name_2, "w") as text_file:
     text_file.write(report)
@@ -158,13 +131,3 @@ get_figure(H, args['epochs_2'], 'fine-tuned').savefig(fig_name_2)
 
 print("[INFO] saving model...")
 save_model(model, model_name)
-
-# print("[INFO] loading best network...")
-# model = load_model(model_name)
-#
-# print("[INFO] evaluating best network...")
-# predictions = model.predict(testX, batch_size=32)
-# report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
-# print(report)
-# with open(report_name_best, "w") as text_file:
-#     text_file.write(report)

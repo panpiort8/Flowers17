@@ -26,7 +26,7 @@ from keras.optimizers import Adam
 from keras.models import save_model
 from keras.models import load_model
 from keras.preprocessing.image import ImageDataGenerator
-import numpy as np
+from datasets.load_images import load_images
 from architectures import *
 from utils.figure_plot import get_figure
 
@@ -46,15 +46,10 @@ model_name = os.path.join("tmp", file_base + '.hdf5')
 
 
 print("[INFO] loading images...")
-imagePaths = []
-for (dirpath, dirnames, filenames) in os.walk(args['dataset']):
-    for file in filenames:
-        imagePaths.append(os.path.join(dirpath, file))
-classNames = [pt.split(os.path.sep)[-2] for pt in imagePaths]
-classNames = [str(x) for x in np.unique(classNames)]
+image_paths, class_names = load_images(args['dataset'])
 
 sdl = DatasetLoader()
-(data, labels) = sdl.load(imagePaths, verbose=500)
+(data, labels) = sdl.load(image_paths, verbose=500)
 data = data.astype("float") / 255.0
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.25, random_state=42)
 trainY = LabelBinarizer().fit_transform(trainY)
@@ -102,7 +97,7 @@ H = model.fit_generator(aug.flow(trainX, trainY, batch_size=64),
 
 print("[INFO] evaluating network...")
 predictions = model.predict(testX, batch_size=32)
-report = str(classification_report(testY.argmax(axis=1),predictions.argmax(axis=1), target_names=classNames))
+report = str(classification_report(testY.argmax(axis=1),predictions.argmax(axis=1), target_names=class_names))
 print(report)
 with open(report_name_1, "w") as text_file:
     text_file.write(report)
@@ -133,7 +128,7 @@ H = model.fit_generator(aug.flow(trainX, trainY, batch_size=64),
 
 print("[INFO] evaluating fine-tuned network...")
 predictions = model.predict(testX, batch_size=32)
-report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
+report = str(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=class_names))
 print(report)
 with open(report_name_2, "w") as text_file:
     text_file.write(report)
